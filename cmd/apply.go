@@ -1,16 +1,14 @@
 package cmd
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"os/exec"
 	"time"
 	"github.com/spf13/cobra"
 	"xochitla.dev/baredroid/baredroid"
 )
 
+var configPath string
+var restart bool
 
 var apply = &cobra.Command{
 	Use:   "apply",
@@ -21,12 +19,10 @@ var apply = &cobra.Command{
 		// initialize the device
 		var device baredroid.Device = *baredroid.NewDevice(10 * time.Minute)
 
-		// Here you would implement the logic to apply the configuration.
-		// For now, we will just print a message.
 		cmd.Println("Applying configuration...")
 		
 		// Load config
-		configPtr, err := baredroid.NewConfig("./s22.baredroid")
+		configPtr, err := baredroid.NewConfig(configPath)
 		if err != nil {
 			cmd.Println("Error loading config:", err)
 			return
@@ -58,41 +54,47 @@ var apply = &cobra.Command{
 
 }
 
-func ExecCmd(cmd *exec.Cmd) {
+func init() {
+	apply.Flags().StringVarP(&configPath, "config", "c", "", "Path to config file")
 
-	err := cmd.Run()
-	if err != nil {
-
-		fmt.Println("Could not run command: ", cmd, err)
-	}
-
-	// fmt.Println(string(out))
+	apply.Flags().BoolVarP(&restart, "restart", "r", false, "Restart device upon successful config application")
 }
 
-func DownloadAPKFromURL(filepath string, url string) error {
+// func ExecCmd(cmd *exec.Cmd) {
 
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+// 	err := cmd.Run()
+// 	if err != nil {
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+// 		fmt.Println("Could not run command: ", cmd, err)
+// 	}
 
-	// Raise for status
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
+// 	// fmt.Println(string(out))
+// }
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
+// func DownloadAPKFromURL(filepath string, url string) error {
 
-	return nil
+// 	out, err := os.Create(filepath)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer out.Close()
 
-}
+// 	resp, err := http.Get(url)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer resp.Body.Close()
+
+// 	// Raise for status
+// 	if resp.StatusCode != http.StatusOK {
+// 		return fmt.Errorf("bad status: %s", resp.Status)
+// 	}
+
+// 	_, err = io.Copy(out, resp.Body)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+
+// }
