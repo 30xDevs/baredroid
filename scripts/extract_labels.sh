@@ -1,6 +1,6 @@
 #!/bin/bash
 # _TOOLS=/opt/android-sdk-update-manager/build-tools/29.0.3
-_AAPT=./aapt2
+_AAPT=aapt2
 adb shell pm list packages --user 0 | sed -e 's|^package:||' | sort >./packages_list.txt
 _PMLIST=packages_list.txt
 rm ./packages_list_with_names.json
