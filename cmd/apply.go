@@ -35,17 +35,14 @@ var apply = &cobra.Command{
 		}
 
 		// Execute installations
-		for i:= range config.PkgInstall {
+		for _, pkg := range config.PkgInstall {
 
 			err := device.InstallPackage(
-				config.PkgInstall[i].Name,
-				config.PkgInstall[i].Package,
-				config.PkgInstall[i].Source,
-				baredroid.InstallType(config.PkgInstall[i].Type),
+				&pkg,
 			)
 
 			if err != nil {
-				cmd.PrintErrf("Failed to install %s: %v\n", config.PkgInstall[i].Name, err)
+				cmd.PrintErrf("Failed to install %s: %v\n", &pkg.Name, err)
 				os.Exit(1)
 			}
 		

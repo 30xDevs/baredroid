@@ -9,14 +9,6 @@ import (
 	"time"
 )
 
-type InstallType string
-
-const (
-	PlayStore InstallType = "playstore"
-	FDroidCL  InstallType = "fdroidcl"
-	Sideload  InstallType = "sideload"
-)
-
 var FDroidCLIndexSynced bool = false
 
 type Device struct {
@@ -58,15 +50,19 @@ func (d *Device) RemovePackage(pkgName string) (string, error) {
 	return out, nil
 }
 
-func (d *Device) InstallPackage(pkgName string, pkg string, source string, installType InstallType) error {
+func (d *Device) InstallPackage(pkg *PkgInstall) error {
 	
 	//TODO: add install check here before calling anything
-	switch installType {
-	case PlayStore:
-		return d.installFromPlayStore(pkg, source)
-	case Sideload:
-		return d.installFromAPK(pkgName, pkg, source)
-	case FDroidCL:
+	switch pkg.Type {
+	case "playstore":
+		if err := d.installFromPlayStore(pkg.Package, pkg.Source); err != nil {
+			return err
+		}
+	case "sideload":
+		if err := d.installFromAPK(pkg.Name, pkg.Package, pkg.Source); err != nil {
+			return err
+		}
+	case "fdroidcl":
 		if !FDroidCLIndexSynced {
 			_, err := d.execCommand("fdroidcl", "update")
 
@@ -77,10 +73,22 @@ func (d *Device) InstallPackage(pkgName string, pkg string, source string, insta
 			FDroidCLIndexSynced = true
 		}
 
-		return d.installFromFDroidCL(pkg)
+		if err := d.installFromFDroidCL(pkg.Package); err != nil {
+			return err
+		}
+
 	default:
-		return fmt.Errorf("unsupported install type: %s", installType)
+		return fmt.Errorf("unsupported install type: %s", pkg.Type)
 	}
+
+	// Install children
+	for _, child := range pkg.Children {
+		if err := d.InstallPackage(&child); err != nil {
+			return fmt.Errorf("could not install: %e", err)
+		}
+	}
+
+	return nil
 }
 
 func (d *Device) isPackageInstalled(pkg string) bool {

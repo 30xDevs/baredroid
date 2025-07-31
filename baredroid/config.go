@@ -12,6 +12,7 @@ type PkgInstall struct {
 	Package string `json:"package"`
 	Type string `json:"type"`
 	Source 	string `json:"source"`
+	Children []PkgInstall `json:"children"`
 }
 
 type Config struct {
