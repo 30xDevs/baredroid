@@ -12,22 +12,19 @@ import (
 var FDroidCLIndexSynced bool = false
 
 type Device struct {
-	ctx		context.Context
+	product string
+	model string
 	timeout time.Duration
 }
 //
 
 func NewDevice(timeout time.Duration) *Device {
 	return &Device{
-		ctx:	 context.Background(),
 		timeout: timeout,
 	}
 }
 
-func (d *Device) execCommand(bin string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(d.ctx, d.timeout)
-	defer cancel()
-
+func (d *Device) execCommand(ctx context.Context, bin string, args ...string) (string, error) {
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Stdout = &stdout
@@ -40,8 +37,8 @@ func (d *Device) execCommand(bin string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-func (d *Device) RemovePackage(pkgName string) (string, error) {
-	out, err := d.execCommand("adb", "shell", "pm", "uninstall", "--user", "0", pkgName)
+func (d *Device) RemovePackage(ctx context.Context, pkgName string) (string, error) {
+	out, err := d.execCommand(ctx, "adb", "shell", "pm", "uninstall", "--user", "0", pkgName)
 
 	if err != nil {
 		return out, fmt.Errorf("could not remove package %s: %s", pkgName, err)
@@ -50,21 +47,21 @@ func (d *Device) RemovePackage(pkgName string) (string, error) {
 	return out, nil
 }
 
-func (d *Device) InstallPackage(pkg *PkgInstall) error {
+func (d *Device) InstallPackage(ctx context.Context, pkg *PkgInstall) error {
 	
 	//TODO: add install check here before calling anything
 	switch pkg.Type {
 	case "playstore":
-		if err := d.installFromPlayStore(pkg.Package, pkg.Source); err != nil {
+		if err := d.installFromPlayStore(ctx, pkg.Package, pkg.Source); err != nil {
 			return err
 		}
 	case "sideload":
-		if err := d.installFromAPK(pkg.Name, pkg.Package, pkg.Source); err != nil {
+		if err := d.installFromAPK(ctx, pkg.Name, pkg.Package, pkg.Source); err != nil {
 			return err
 		}
 	case "fdroidcl":
 		if !FDroidCLIndexSynced {
-			_, err := d.execCommand("fdroidcl", "update")
+			_, err := d.execCommand(ctx, "fdroidcl", "update")
 
 			if err != nil {
 				return fmt.Errorf("failed to update the fdroid package index: %v", err)
@@ -73,7 +70,7 @@ func (d *Device) InstallPackage(pkg *PkgInstall) error {
 			FDroidCLIndexSynced = true
 		}
 
-		if err := d.installFromFDroidCL(pkg.Package); err != nil {
+		if err := d.installFromFDroidCL(ctx, pkg.Package); err != nil {
 			return err
 		}
 
@@ -83,7 +80,7 @@ func (d *Device) InstallPackage(pkg *PkgInstall) error {
 
 	// Install children
 	for _, child := range pkg.Children {
-		if err := d.InstallPackage(&child); err != nil {
+		if err := d.InstallPackage(ctx, &child); err != nil {
 			return fmt.Errorf("could not install: %e", err)
 		}
 	}
@@ -91,8 +88,8 @@ func (d *Device) InstallPackage(pkg *PkgInstall) error {
 	return nil
 }
 
-func (d *Device) isPackageInstalled(pkg string) bool {
-	out, err := d.execCommand("adb", "shell", "pm", "list", "packages", "-3")
+func (d *Device) isPackageInstalled(ctx context.Context, pkg string) bool {
+	out, err := d.execCommand(ctx, "adb", "shell", "pm", "list", "packages", "-3")
 
 	if err != nil {
 		return false

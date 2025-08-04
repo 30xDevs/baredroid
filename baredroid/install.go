@@ -1,6 +1,7 @@
 package baredroid
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,10 +9,11 @@ import (
 	"time"
 )
 
-func (d *Device) installFromPlayStore(pkg string, url string) error {
+func (d *Device) installFromPlayStore( ctx context.Context, pkg string, url string) error {
 
-    if !d.isPackageInstalled(pkg) {
+    if !d.isPackageInstalled(ctx, pkg) {
          _, err := d.execCommand(
+            ctx,
             "adb",
             "shell", 
             "am", 
@@ -31,14 +33,14 @@ func (d *Device) installFromPlayStore(pkg string, url string) error {
     }
 
 	// Wait and verify installation
-	return d.waitForPackageInstall(pkg)
+	return d.waitForPackageInstall(ctx, pkg)
 }
 
-func (d *Device) installFromAPK(pkgName string, pkg string, source string) error {
+func (d *Device) installFromAPK(ctx context.Context, pkgName string, pkg string, source string) error {
 
     apkPath := "./"+pkgName+".apk"
 
-    if !d.isPackageInstalled(pkg) {
+    if !d.isPackageInstalled(ctx, pkg) {
         
         if _, err := os.Stat(apkPath); os.IsNotExist(err) {
             downloadFile(apkPath, source)
@@ -46,6 +48,7 @@ func (d *Device) installFromAPK(pkgName string, pkg string, source string) error
 
         // Execute streamed install with adb
         _, err := d.execCommand(
+            ctx,
             "adb",
             "install",
             apkPath,
@@ -59,11 +62,12 @@ func (d *Device) installFromAPK(pkgName string, pkg string, source string) error
     return nil
 }
 
-func (d *Device) installFromFDroidCL(pkg string) error {
+func (d *Device) installFromFDroidCL(ctx context.Context, pkg string) error {
 
     // TODO: Perhaps move this to device.go and check before calling
-    if !d.isPackageInstalled(pkg) {
+    if !d.isPackageInstalled(ctx, pkg) {
         _, err := d.execCommand(
+            ctx,
             "fdroidcl",
             "install",
             pkg,
@@ -77,10 +81,10 @@ func (d *Device) installFromFDroidCL(pkg string) error {
     return nil
 }
 
-func (d *Device) waitForPackageInstall(pkg string) error {
+func (d *Device) waitForPackageInstall(ctx context.Context, pkg string) error {
     deadline := time.Now().Add(2 * time.Minute)
     for time.Now().Before(deadline) {
-        installed:= d.isPackageInstalled(pkg)
+        installed:= d.isPackageInstalled(ctx, pkg)
         if installed {
             return nil
         }

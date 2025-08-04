@@ -1,0 +1,29 @@
+package baredroid
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"os/exec"
+)
+
+var ServerRunning bool = false
+
+type AdbInstance struct {
+	port	int
+	device 	*Device
+}
+
+func NewAdbInstance(timeout time.Duration, port int, device *Device) *AdbInstance {
+	return &AdbInstance{
+		ctx:	context.Background(),
+		timeout: timeout,
+		port:	port,
+		device: device,
+	}
+}
+
+func (a *AdbInstance) startServer() (string, error) {
+	var stdout, stderr bytes.Buffer
+	cmd :=
+}

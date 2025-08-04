@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"os"
 	"time"
+
 	"github.com/spf13/cobra"
 	"xochitla.dev/baredroid/baredroid"
 )
@@ -19,6 +21,8 @@ var apply = &cobra.Command{
 		// initialize the device
 		var device baredroid.Device = *baredroid.NewDevice(10 * time.Minute)
 
+		var ctx context.Context = context.Background()
+
 		cmd.Println("Applying configuration...")
 		
 		// Load config
@@ -31,18 +35,19 @@ var apply = &cobra.Command{
 
 		// Execute removals
 		for i:= range config.PkgRemove {
-			device.RemovePackage(config.PkgRemove[i])
+			device.RemovePackage(ctx, config.PkgRemove[i])
 		}
 
 		// Execute installations
 		for _, pkg := range config.PkgInstall {
 
 			err := device.InstallPackage(
+				ctx,
 				&pkg,
 			)
 
 			if err != nil {
-				cmd.PrintErrf("Failed to install %s: %v\n", &pkg.Name, err)
+				cmd.PrintErrf("Failed to install %w: %v\n", &pkg.Name, err)
 				os.Exit(1)
 			}
 		
@@ -56,42 +61,3 @@ func init() {
 
 	apply.Flags().BoolVarP(&restart, "restart", "r", false, "Restart device upon successful config application")
 }
-
-// func ExecCmd(cmd *exec.Cmd) {
-
-// 	err := cmd.Run()
-// 	if err != nil {
-
-// 		fmt.Println("Could not run command: ", cmd, err)
-// 	}
-
-// 	// fmt.Println(string(out))
-// }
-
-// func DownloadAPKFromURL(filepath string, url string) error {
-
-// 	out, err := os.Create(filepath)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer out.Close()
-
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
-
-// 	// Raise for status
-// 	if resp.StatusCode != http.StatusOK {
-// 		return fmt.Errorf("bad status: %s", resp.Status)
-// 	}
-
-// 	_, err = io.Copy(out, resp.Body)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-
-// }
